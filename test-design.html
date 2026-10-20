@@ -1,0 +1,61 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Test design walkthrough | Kerk Gerald Quinamot</title><meta name="description" content="A fictional QA demonstration: follow a profile requirement through risk review, test design, automation, and reporting."><link rel="icon" href="favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="styles.css"><script src="site.js" defer></script></head>
+<body><a class="skip" href="#main">Skip to content</a><header class="topbar"><nav class="nav wrap" aria-label="Main navigation"><a class="brand" href="index.html#top" aria-label="Kerk, homepage">kq.</a><div class="nav-links"><a href="index.html#work">Work</a><a href="index.html#approach">Approach</a><a href="index.html#profile">Background</a><a class="nav-contact" href="index.html#contact">Get in touch ↗</a></div></nav></header>
+<main class="wrap" id="main">
+<header class="detail-hero"><a class="back" href="index.html#work">← Back to selected work</a><p class="eyebrow">QA demonstration / fictional scenario</p><h1>A small feature.<br>A lot worth checking.</h1><p class="detail-intro">Editing a display name looks straightforward. The interesting work is deciding what must stay true when an edit is invalid, a save fails, or the requirement leaves something open.</p><div class="detail-meta"><span><strong>Focus:</strong> test design and QA judgment</span><span><strong>Format:</strong> five-stage walkthrough</span></div><p class="note" style="margin-top:20px">Created for this portfolio with fictional data and AI-assisted preparation, to illustrate my approach. This is a demonstration of proposed tests and expected checks; it contains no client execution results.</p></header>
+<nav class="walk-nav" data-walk-nav aria-label="Walkthrough stages"><a href="#requirement"><span class="step-no">01</span>Requirement</a><a href="#risk"><span class="step-no">02</span>Questions &amp; risk</a><a href="#cases"><span class="step-no">03</span>Test cases</a><a href="#script"><span class="step-no">04</span>Automation</a><a href="#report"><span class="step-no">05</span>Checks &amp; reporting</a></nav>
+<section class="walk-stage" id="requirement" aria-labelledby="requirement-title">
+  <p class="eyebrow">01 / Understand the behavior</p><h2 id="requirement-title" tabindex="-1">What does “saved” mean?</h2>
+  <div class="walk-grid"><div class="artifact"><p class="eyebrow">The fictional requirement</p><h3>Edit a display name</h3><p>A signed-in user can update their display name. Leading and trailing spaces are trimmed before validation. The saved name must contain 1 to 50 characters and remain visible after a page reload. An invalid name must not replace the saved value.</p><div class="annotation"><h3>The property I want to protect</h3><p>A rejected edit must leave the previously saved name intact. Seeing a validation message alone would not prove that.</p></div></div><div><div class="inspection"><div class="inspection-top"><span>Profile / fictional</span><span>Existing saved value</span></div><div class="mock-form"><h3>Edit display name</h3><p class="mock-label">Display name</p><div class="mock-input"><span>Alex Morgan</span></div><div class="mock-meta"><span>1–50 characters</span><span>11 / 50</span></div><span class="mock-save">Save changes</span></div><div class="margin-note"><span aria-hidden="true">↳</span><span>Check the saved value after reload,<br>not just the immediate screen.</span></div></div><p class="note" style="margin-top:16px">This is an illustrative interface, not an interactive application.</p></div></div>
+</section>
+<section class="walk-stage" id="risk" aria-labelledby="risk-title">
+  <p class="eyebrow">02 / Decide what matters first</p><h2 id="risk-title" tabindex="-1">Protect the data. Resolve the unknowns.</h2><p>I would start with persistence and invalid edits because the user could otherwise see an apparently successful change or lose a valid name. Boundary checks then help locate errors in validation.</p>
+  <ul class="risk-list"><li><strong>First checks</strong><p>Save a valid name and reload. Then attempt an invalid edit and confirm the original saved value remains. These checks cover the essential user journey and data integrity.</p></li><li><strong>Boundaries</strong><p>Use 1, 50, and 51 ASCII characters, plus spaces only. ASCII makes the initial boundary expectations unambiguous while character-counting rules are being clarified.</p></li><li><strong>Ask before testing</strong><p>How are emoji and combined Unicode characters counted? What feedback and retry behavior should follow a failed save? What happens when two sessions edit the same profile?</p></li><li><strong>Scope decision</strong><p>Keep network failure, Unicode counting, and concurrent-edit expectations open until agreed. Record the uncertainty instead of inventing a pass condition.</p></li></ul>
+</section>
+<section class="walk-stage" id="cases" aria-labelledby="cases-title">
+  <p class="eyebrow">03 / Turn the requirement into checks</p><h2 id="cases-title" tabindex="-1">Five cases with a clear purpose.</h2><p>Each case starts with an existing saved name and a signed-in user. The result should be observable after reload, so the tests check persistence as well as immediate feedback.</p>
+  <div class="table-scroll" tabindex="0" role="region" aria-label="Selected test cases, scroll horizontally on small screens"><table><thead><tr><th>Case</th><th>Input / focus</th><th>Expected result</th></tr></thead><tbody><tr><td>TC-01</td><td>A valid new name<br>Positive journey</td><td>Accepted and still saved after reload.</td></tr><tr><td>TC-02</td><td>One ASCII character<br>Lower boundary</td><td>Accepted and still saved after reload.</td></tr><tr><td>TC-03</td><td>Exactly 50 ASCII characters<br>Upper boundary</td><td>Accepted and still saved after reload.</td></tr><tr><td>TC-04</td><td>51 ASCII characters<br>Invalid boundary</td><td>Rejected; the previously saved name remains after reload.</td></tr><tr><td>TC-05</td><td>Spaces only<br>Trim and validate</td><td>Trimmed to empty and rejected; the saved name remains unchanged.</td></tr></tbody></table></div>
+  <div class="annotation"><h3>Why these cases?</h3><p>They cover a normal edit, both accepted boundaries, and two different ways an edit can become invalid. They are a starting selection, not a claim of complete feature coverage.</p></div>
+</section>
+<section class="walk-stage" id="script" aria-labelledby="script-title">
+  <p class="eyebrow">04 / Select an automation candidate</p><h2 id="script-title" tabindex="-1">Automate the rule you can explain.</h2><p>TC-04 is a useful candidate because its input and expected result are explicit and repeatable. The assertion must check that the saved data survived the rejected edit, not just that a message appeared.</p>
+  <div class="artifact"><p class="eyebrow">Fictional setup / agreed demo assumptions</p><p>The example assumes an isolated test profile, a signed-in Playwright fixture, a configured demo base URL, and an editable input that permits submitting 51 characters. It also assumes a Save changes button and the agreed validation message below. A product that prevents typing or submitting invalid input needs a different test path.</p></div>
+  <div class="code-block"><div class="code-label">Reconstructed Playwright / TypeScript · illustrative test</div><pre tabindex="0" aria-label="Reconstructed TypeScript test"><code>import { test, expect } from '@playwright/test';
+
+test('TC-04: invalid edit preserves the saved name',
+  async ({ page }) =&gt; {
+    // Demo baseURL and authentication are configured.
+    await page.goto('/profile');
+    const name = page.getByLabel('Display name', { exact: true });
+    const save = page.getByRole('button', {
+      name: 'Save changes', exact: true
+    });
+
+    // Establish a known saved value on an isolated test profile.
+    await name.fill('Alex Morgan');
+    await save.click();
+    await expect(page.getByRole('status'))
+      .toHaveText('Profile saved');
+    await page.reload();
+    await expect(name).toHaveValue('Alex Morgan');
+
+    // Submit one character beyond the agreed ASCII limit.
+    await name.fill('A'.repeat(51));
+    await save.click();
+    await expect(page.getByRole('alert'))
+      .toHaveText('Use 1 to 50 characters.');
+
+    // The rejected edit must not replace persisted data.
+    await page.reload();
+    await expect(name).toHaveValue('Alex Morgan');
+  }
+);</code></pre></div>
+  <p class="note">This complete test example was prepared with AI assistance for the fictional walkthrough. It has not been executed against a provided application. The real-work examples describe my QA direction, script review, and hands-on contribution separately.</p>
+  <div class="annotation"><h3>What I would review in the draft</h3><p>Does the setup establish known data? Do locators match the actual interface? Does the validation message come from an agreed requirement? Does the final assertion verify persistence? Can the test run without changing another tester’s data?</p></div>
+</section>
+<section class="walk-stage" id="report" aria-labelledby="report-title">
+  <p class="eyebrow">05 / Explain what the checks would establish</p><h2 id="report-title" tabindex="-1">A useful result tells the whole story.</h2><p>For TC-04, a pass would require both rejection of the invalid edit and preservation of the saved name after reload. These are expected checks for the demonstration, not recorded execution results.</p>
+  <div class="walk-grid"><div class="artifact"><p class="eyebrow">Expected checks</p><h3>Before calling the case passed</h3><ul><li>The known valid name is saved and survives reload.</li><li>The 51-character input is rejected with the agreed feedback.</li><li>The previously saved name still exists after the rejected edit and reload.</li></ul><div class="annotation"><h3>Evidence to retain</h3><p>Build and environment, test data, relevant screenshots or trace, and actual assertion results. Investigate inconsistent reruns rather than reporting only the latest green result.</p></div></div><div class="artifact"><p class="eyebrow">Fictional bug report / separate positive case</p><h3>Saved display name reverts after reload</h3><dl class="labelled-list"><div><dt>Steps</dt><dd>Record the saved name. Save a valid different name. Reload the profile.</dd></div><div><dt>Expected</dt><dd>The updated name remains visible.</dd></div><div><dt>Illustrative actual</dt><dd>The previous name reappears.</dd></div><div><dt>Next action</dt><dd>Confirm reproducibility and affected scope; attach before-and-after evidence and the build details before assigning severity.</dd></div></dl><p class="note" style="margin-top:18px">This fictional defect illustrates reporting for TC-01. It was not observed in a client product.</p></div></div>
+</section>
+<div class="walk-controls" data-walk-controls hidden><button type="button" class="button previous" data-previous>← Previous</button><span class="step-status" data-status aria-live="polite"></span><button type="button" class="button" data-next>Next →</button></div>
+<div class="related"><a href="index.html#work">← Back to selected work</a><a href="playwright.html">Explore reviewed Playwright work ↗</a></div>
+</main><footer class="wrap footer detail-footer"><span>© 2026 Kerk Gerald Quinamot</span><a href="index.html#contact">Get in touch</a></footer></body></html>
